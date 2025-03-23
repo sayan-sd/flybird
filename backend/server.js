@@ -1,11 +1,16 @@
 const app = require("./app");
 require("dotenv").config();
 const mongoose = require("mongoose");
+const socketServer = require('./socketServer');
 
 const port = process.env.PORT || 3001;
 
 const http = require("http");
 const server = http.createServer(app);
+
+// socket server
+socketServer.registerSocketServer(server);
+
 
 // connect to mongodb
 mongoose
