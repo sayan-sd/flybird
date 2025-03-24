@@ -46,7 +46,7 @@ const userSchema = new mongoose.Schema(
         otp: {
             type: String,
         },
-        otp_expriry_time: {
+        otp_expiry_time: {
             type: Date,
         },
         status: {
@@ -56,7 +56,7 @@ const userSchema = new mongoose.Schema(
         },
         socketId: {
             type: String,
-        }
+        },
     },
     {
         timestamps: true,
@@ -93,7 +93,17 @@ userSchema.methods.correctPassword = async function (
     return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-// !Method - change password (TODO)
+// Method - change password
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+    if (this.passwordChangedAt) {
+        const changedTimestamp = parseInt(
+            this.passwordChangedAt.getTime() / 1000,
+            10
+        );
+        return JWTTimestamp < changedTimestamp;
+    }
+    return false;
+};
 
 const User = new mongoose.model("User", userSchema);
 module.exports = User;

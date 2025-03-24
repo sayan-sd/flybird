@@ -2,6 +2,9 @@ const User = require("../Models/User");
 const catchAsync = require("../utils/catchAsync");
 const otpGenerator = require("otp-generator");
 const jwt = require("jsonwebtoken");
+const { promisify } = require("util");
+const Mailer = require("../services/mailer");
+require("dotenv").config();
 
 // sign JWT token
 const signToken = (userId) => jwt.sign({ userId }, process.env.TOKEN_KEY);
@@ -55,14 +58,14 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
         specialChars: false,
     });
 
-    const otp_exipry_time = Date.now() + 10 * 60 * 1000;
+    const otp_expiry_time = Date.now() + 10 * 60 * 1000;
 
     // update user doc
     const user = await User.findByIdAndUpdate(
         userId,
         {
             otp: new_otp.toString(),
-            otp_expiry_time: otp_exipry_time,
+            otp_expiry_time: otp_expiry_time,
         },
         {
             new: true,
@@ -70,7 +73,8 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
         }
     );
 
-    // TODO => Send opt via email
+    // Send opt via email
+    Mailer({ name: user.name, email: user.email, otp: new_otp });
 
     res.status(200).json({
         status: "success",
@@ -78,7 +82,41 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
     });
 });
 
-// *Resend OTP (26)
+// Resend OTP
+exports.resendOTP = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    // user not found
+    if (!user) {
+        return res.status(404).json({
+            status: "error",
+            message: "User not found",
+        });
+    }
+
+    // generate new OTP
+    const new_otp = otpGenerator.generate(4, {
+        upperCaseAlphabets: false,
+        lowerCaseAlphabets: false,
+        specialChars: false,
+    });
+
+    const otp_expiry_time = Date.now() + 10 * 60 * 1000;
+
+    // update user doc
+    user.otp = new_otp;
+    await user.save({});
+
+    // send otp via mail
+    Mailer({ name: user.name, email: user.email, otp: new_otp });
+
+    res.status(200).json({
+        status: "success",
+        message: "OTP sent successfully",
+    });
+});
 
 // Verify OTP
 exports.verifyOTP = catchAsync(async (req, res, next) => {
@@ -86,7 +124,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
 
     const user = await User.findOne({
         email,
-        otp_exipry_time: { $gt: Date.now() },
+        otp_expiry_time: { $gt: Date.now() },
     });
 
     // user not valid or otp expired
@@ -124,7 +162,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
 
     res.status(200).json({
         status: "success",
-        message: "OTP verified successfully",
+        message: "Email verified successfully",
         token,
         user_id: user._id,
     });
@@ -172,4 +210,58 @@ exports.login = catchAsync(async (req, res, next) => {
     });
 });
 
-// Authentication (Protect)
+// Authorization (Protect endpoint)
+exports.protect = catchAsync(async (req, res, next) => {
+    try {
+        // 1. get the auth token
+        let token;
+
+        if (
+            req.headers.authorization &&
+            req.headers.authorization.startsWith("Bearer")
+        ) {
+            token = req.headers.authorization.split(" ")[1];
+        } else if (req.cookies.jwt) {
+            token = req.cookies.jwt;
+        }
+
+        // if token not found
+        if (!token) {
+            res.status(401).json({
+                status: "error",
+                message: "No token, authorization denied",
+            });
+        }
+
+        // 2. verify token
+        const decoded = promisify(jwt.verify)(token, process.env.TOKEN_KEY);
+
+        // 3. if user exists
+        const this_user = await User.findById(decoded.userId);
+
+        if (!this_user) {
+            res.status(401).json({
+                status: "error",
+                message: "User no longer exists",
+            });
+        }
+
+        // 4. if user changed password after token was issued
+        if (this_user.changedPasswordAfter(decoded.iat)) {
+            res.status(401).json({
+                status: "error",
+                message: "User's password has changed. Please login again",
+            });
+        }
+
+        // grant access to protected routes
+        req.user = this_user;
+        next();
+    } catch (error) {
+        console.log("Protect endpoint error: " + error);
+        return res.status(401).json({
+            status: "error",
+            message: "Unauthorized",
+        });
+    }
+});

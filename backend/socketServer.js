@@ -15,13 +15,34 @@ const registerSocketServer = (server) => {
     io.on('connection', (socket) => {
         console.log(`New socket connection: ${socket.id}`);
 
-        // new connection
+        // todo: new connection
+
+        // todo: disconnect
+        socket.on('disconnect', () => {
+            
+        });
+
+        // todo: new message
+        socket.on('new-message', (data) => {
+            
+        });
+
+        // todo: chat history
+        socket.on('direct-chat-history', (data) => {
+            
+        });
+
+        // todo: start typing
+        socket.on('start-typing', (data) => {
+            
+        });
+
+        // todo: stop typing
+        socket.on('stop-typing', (data) => {
+            
+        });
+
     })
-
-
-    setInterval(() => {
-        // emit online user
-    }, [10000]);
 }
 
 module.exports = { registerSocketServer };

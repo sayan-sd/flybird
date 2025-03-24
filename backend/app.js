@@ -8,6 +8,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const session = require('cookie-session');
+const routes = require('./routes/index')
 
 
 const app = express();
@@ -42,8 +43,7 @@ app.use(xss());
 
 
 // Routes
-
-
+app.use(routes)
 
 
 module.exports = app;
