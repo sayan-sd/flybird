@@ -1,4 +1,10 @@
-const authSocket = require('./middleware/authSocket')
+const authSocket = require('./middleware/authSocket');
+const disconnectHandler = require('./socketHandlers/disconnectHandler');
+const chatHistoryHandler = require('./socketHandlers/getMessageHistoryHandler');
+const newConnectionHandler = require('./socketHandlers/newConnectionHandler');
+const newMessageHandler = require('./socketHandlers/newMessageHandler');
+const startTypingHandler = require('./socketHandlers/startTypingHandler');
+const stopTypingHandler = require('./socketHandlers/stopTypingHandler');
 
 const registerSocketServer = (server) => {
     const io = require('socket.io')(server, {
@@ -15,31 +21,32 @@ const registerSocketServer = (server) => {
     io.on('connection', (socket) => {
         console.log(`New socket connection: ${socket.id}`);
 
-        // todo: new connection
+        // new connection
+        newConnectionHandler(socket, io);
 
-        // todo: disconnect
+        // disconnect
         socket.on('disconnect', () => {
-            
+            disconnectHandler(socket);
         });
 
-        // todo: new message
+        // new message
         socket.on('new-message', (data) => {
-            
+            newMessageHandler(socket, data, io);
         });
 
-        // todo: chat history
+        // chat history
         socket.on('direct-chat-history', (data) => {
-            
+            chatHistoryHandler(socket, data);
         });
 
-        // todo: start typing
+        // start typing
         socket.on('start-typing', (data) => {
-            
+            startTypingHandler(socket, data, io);
         });
 
-        // todo: stop typing
+        // stop typing
         socket.on('stop-typing', (data) => {
-            
+            stopTypingHandler(socket, data, io);
         });
 
     })
