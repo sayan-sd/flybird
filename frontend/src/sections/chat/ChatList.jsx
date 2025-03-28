@@ -1,5 +1,5 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import React from "react";
+import React, { useState } from "react";
 
 // ============== demo frontend data ==================
 
@@ -36,6 +36,8 @@ const List = [
 
 // ============== end of demo frontend data =================
 const ChatList = () => {
+    const [selected, setSelected] = useState(0);
+
     return (
         <div className="hidden h-full flex-col xl:flex xl:w-1/4">
             {/* Heading */}
@@ -67,8 +69,15 @@ const ChatList = () => {
                     {List.map((object, item) => {
                         return (
                             <div
-                                className="flex cursor-pointer items-center rounded px-4 py-2 hover:bg-gray-2 dark:hover:bg-strokedark"
+                                className={`flex cursor-pointer items-center rounded px-4 py-2  dark:hover:bg-strokedark ${
+                                    selected === item
+                                        ? "bg-gray dark:bg-boxdark-2"
+                                        : "hover:bg-gray-2 dark:hover:bg-boxdark-2/50"
+                                }`}
                                 key={item}
+                                onClick={() => {
+                                    setSelected(item);
+                                }}
                             >
                                 {/* profile img */}
                                 <div className=" relative mr-3.5 h-11 w-full max-w-11 rounded-full">
@@ -88,7 +97,7 @@ const ChatList = () => {
                                     </h5>
 
                                     {/* lasg msg */}
-                                    <p className="text-sm">{ object.message }</p>
+                                    <p className="text-sm">{object.message}</p>
                                 </div>
                             </div>
                         );

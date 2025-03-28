@@ -41,6 +41,9 @@ app.use(express.urlencoded({
 app.use(mongosanitize());
 app.use(xss());
 
+app.get("/", (req, res) => {
+    res.send('<h1>Hello, World!</h1>');
+})
 
 // Routes
 app.use(routes)

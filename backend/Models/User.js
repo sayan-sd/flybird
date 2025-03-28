@@ -66,15 +66,19 @@ const userSchema = new mongoose.Schema(
 // "pre save" hook
 userSchema.pre("save", async function (next) {
     // Hash the otp (run if otp modified)
-    if (this.isModified("otp") || this.otp) {
-        this.otp = await bcrypt.hash(this.otp.toString(), 10);
-        console.log(this.otp.toString(), "clg pre save hook");
+    if (this.isModified("otp") && this.otp) {
+        if (this.otp) {
+            this.otp = await bcrypt.hash(this.otp.toString(), 10);
+            console.log(this.otp.toString(), "hash otp in pre save");
+        }
     }
 
     // Hash the password (run if password modified)
-    if (this.isModified("password") || this.password) {
-        this.password = await bcrypt.hash(this.password.toString(), 10);
-        console.log(this.password.toString(), "clg pre save hook");
+    if (this.isModified("password") && this.password) {
+        if (this.password) {
+            this.password = await bcrypt.hash(this.password.toString(), 10);
+            console.log(this.password.toString(), "hash password in pre save");
+        }
     }
 
     next();

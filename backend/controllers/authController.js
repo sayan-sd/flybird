@@ -49,7 +49,16 @@ exports.register = catchAsync(async (req, res, next) => {
 
 // Send OTP
 exports.sendOTP = catchAsync(async (req, res, next) => {
-    const { userId } = req.userId;
+    const userId = req.userId;
+
+    // Find the user first
+    const user = await User.findById(userId);
+    if (!user) {
+        return res.status(404).json({
+            status: "error",
+            message: "User not found",
+        });
+    }
 
     // generate new OTP
     const new_otp = otpGenerator.generate(4, {
@@ -60,18 +69,10 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
 
     const otp_expiry_time = Date.now() + 10 * 60 * 1000;
 
-    // update user doc
-    const user = await User.findByIdAndUpdate(
-        userId,
-        {
-            otp: new_otp.toString(),
-            otp_expiry_time: otp_expiry_time,
-        },
-        {
-            new: true,
-            validateModifiedOnly: true,
-        }
-    );
+    // Update user directly and save
+    user.otp = new_otp.toString();
+    user.otp_expiry_time = otp_expiry_time;
+    await user.save();
 
     // Send opt via email
     Mailer({ name: user.name, email: user.email, otp: new_otp });
@@ -124,7 +125,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
 
     const user = await User.findOne({
         email,
-        otp_expiry_time: { $gt: Date.now() },
+        // otp_expiry_time: { $gt: Date.now() },
     });
 
     // user not valid or otp expired
@@ -145,7 +146,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
 
     // otp not matching
     if (!(await user.correctOTP(otp, user.otp))) {
-        res.status(400).json({
+        return res.status(400).json({
             status: "error",
             message: "Invalid OTP",
         });
@@ -171,6 +172,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
 // Login
 exports.login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
+    console.log(email, password);
 
     // date invalid
     if (!email || !password) {
